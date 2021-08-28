@@ -126,3 +126,14 @@ int main()
 
 	return 0;
 }
+
+
+/*
+opencv_core453d.lib
+opencv_highgui453d.lib
+opencv_imgcodecs453d.lib
+opencv_imgproc453d.lib
+opencv_xfeatures2d453d.lib
+opencv_features2d453d.lib
+opencv_calib3d453d.lib
+*/
