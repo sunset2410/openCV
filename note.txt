@@ -1,0 +1,187 @@
+#include<string>
+#include<unordered_map>
+using namespace std;
+
+#define MAX_USER 1000
+#define MAX_FIELD 5
+enum FIELD
+{
+	NAME,
+	NUMBER,
+	BIRTHDAY,
+	EMAIL,
+	MEMO
+};
+
+
+
+void copystr(char* d, const char* s)
+{
+	while (*s != '\0')
+	{
+		*d = *s;
+		s++;
+		d++;
+	}
+	*d = *s;
+}
+
+
+bool comparestr(const char* s1, const char* s2)
+{
+	while (*s1 != '\0')
+	{
+		if (*s1 != *s2) return false;
+		s1++;
+		s2++;
+	}
+	if (*s1 != *s2) return false;
+	return true;
+}
+
+
+
+
+struct RESULT
+{
+	int count; // so ban ghi
+	char str[20]; // gia tri can tim neu chi co duy nhat 1 ban ghi, bo qua neu ko co hoac co nhieu ban ghi
+};
+
+struct User 
+{
+	char data[MAX_FIELD][22]; // khai bao 5 truong moi turong toi da 20 ki tu
+};
+
+typedef User USER;
+
+
+
+USER poolUser[MAX_USER];
+
+int countUser; // index va la id cua user
+unordered_map<string, vector<int>> hashTable[MAX_FIELD]; // 5 hash table theo 5 truong
+
+unordered_map<string, vector<int>>::iterator it; // con tro de tim
+
+User* newUser(char* name, char* number, char* birthday, char* email, char* memo)
+{
+	User* temp = &poolUser[countUser];
+	copystr(temp->data[0], name);
+	copystr(temp->data[1], number);
+	copystr(temp->data[2], birthday);
+	copystr(temp->data[3], email);
+	copystr(temp->data[4], memo);
+	countUser++;
+	return temp;
+}
+
+
+
+void init()
+{
+	for (int i = 0; i < MAX_FIELD; i++)
+		hashTable->clear();
+}
+
+void add(char* name, char* number, char* birthday, char* email, char* memo)
+{
+	User* temp = newUser(name, number, birthday, email, memo);
+
+	for (int i = 0; i < MAX_FIELD; i++) // for het cac truong de add vao hashtable
+	{
+		hashTable[i][temp->data[i]].push_back(countUser - 1); // moi truong se add vao hashtable tuong ung
+	}
+}
+
+int Delete(FIELD field, char* str) // return so ban ghi cos truong field bang str
+{
+	int count = 0;
+	it = hashTable[field].find(str);
+	if (it->second.size() == 0) 
+		return count;
+
+	vector<int> list = it->second; // list cac user can xoa => lay tung truong thong tin cua tung user de xoa id cua user do trong bang thong tin
+	count = list.size();
+
+
+	for (int i = 0; i < list.size(); i++)
+	{
+		int id = list.at(i); // id cua user can xoa
+		User* temp = &poolUser[id];
+
+		for (int k = 0; k < MAX_FIELD; k++) // for het 5 truong , moi truong se xoa id trong bang hashtable
+		{
+			for (vector<int>::iterator pos = hashTable[k][temp->data[k]].begin();
+				pos != hashTable[k][temp->data[k]].end(); pos++) // for het vector cac id xem co id giong khong
+			{
+				if (*pos == id)
+				{
+					hashTable[k][temp->data[k]].erase(pos);
+					break; // moi lan chi can tim 1 so vi id la duy nhat
+				}
+			}
+
+		}
+	}
+
+	return count;
+}
+
+int change(FIELD field, char* str, FIELD changefield, char* changestr) // return so ban ghi
+{
+	int count = 0;
+	it = hashTable[field].find(str);
+	if (it->second.size() == 0)
+		return count;
+
+	vector<int> list = it->second;
+	count = list.size();
+
+	for (int i = 0; i < list.size(); i++) // for het ca user id de thay doi truong changefiled
+	{
+		int id = list.at(i);
+		User* temp = &poolUser[id];
+
+		// for het vector<int> de tim id de xoa di
+		for (vector<int>::iterator pos = hashTable[changefield][temp->data[changefield]].begin();
+			pos != hashTable[changefield][temp->data[changefield]].end(); pos++)
+		{
+			if (*pos == id)
+			{
+				hashTable[changefield][temp->data[changefield]].erase(pos); // xoa id trong vector cac ids
+				break;
+			}
+		}
+
+		// thay du lieu moi
+		copystr(temp->data[changefield], changestr);
+
+		// them hash dua lieu moi
+		hashTable[changefield][temp->data[changefield]].push_back(id);
+	}
+	return count;
+}
+
+
+RESULT search(FIELD field, char* str, FIELD returnfield) // co 0 ban ghi hoac > 1 ban ghi thi ko quan tam returnfield
+{
+	RESULT result;
+	result.count = 0;
+
+	it = hashTable[field].find(str);
+	if (it->second.size() == 0)
+		return result;
+
+	vector<int> list = it->second;
+	result.count = list.size();
+
+	if (list.size() == 1)
+	{
+		int id = list.at(0);
+		User* temp = &poolUser[id];
+		copystr(result.str, temp->data[returnfield]);
+	}
+
+	return result;
+}
