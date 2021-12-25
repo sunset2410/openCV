@@ -1,33 +1,28 @@
-#include<string>
 #include<unordered_map>
+#include<string>
 using namespace std;
 
-#define MAX_USER 1000
-#define MAX_FIELD 5
-enum FIELD
-{
-	NAME,
-	NUMBER,
-	BIRTHDAY,
-	EMAIL,
-	MEMO
-};
+// N length cua init string
+// init_string[] origin string
 
+char origin_str[500007];
+int _N;
 
+unordered_map<string, vector<int>> hashTable;
 
-void copystr(char* d, const char* s)
+void copyStr(char* s, char* d)
 {
 	while (*s != '\0')
 	{
 		*d = *s;
-		s++;
 		d++;
+		s++;
 	}
 	*d = *s;
 }
 
 
-bool comparestr(const char* s1, const char* s2)
+bool compareStr(char* s1, char* s2)
 {
 	while (*s1 != '\0')
 	{
@@ -35,153 +30,173 @@ bool comparestr(const char* s1, const char* s2)
 		s1++;
 		s2++;
 	}
+
 	if (*s1 != *s2) return false;
 	return true;
 }
 
 
-
-
-struct RESULT
+void removeVector(vector<int> &list, int value)
 {
-	int count; // so ban ghi
-	char str[20]; // gia tri can tim neu chi co duy nhat 1 ban ghi, bo qua neu ko co hoac co nhieu ban ghi
-};
-
-struct User 
-{
-	char data[MAX_FIELD][22]; // khai bao 5 truong moi turong toi da 20 ki tu
-};
-
-typedef User USER;
-
-
-
-USER poolUser[MAX_USER];
-
-int countUser; // index va la id cua user
-unordered_map<string, vector<int>> hashTable[MAX_FIELD]; // 5 hash table theo 5 truong
-
-unordered_map<string, vector<int>>::iterator it; // con tro de tim
-
-User* newUser(char* name, char* number, char* birthday, char* email, char* memo)
-{
-	User* temp = &poolUser[countUser];
-	copystr(temp->data[0], name);
-	copystr(temp->data[1], number);
-	copystr(temp->data[2], birthday);
-	copystr(temp->data[3], email);
-	copystr(temp->data[4], memo);
-	countUser++;
-	return temp;
-}
-
-
-
-void init()
-{
-	for (int i = 0; i < MAX_FIELD; i++)
-		hashTable->clear();
-}
-
-void add(char* name, char* number, char* birthday, char* email, char* memo)
-{
-	User* temp = newUser(name, number, birthday, email, memo);
-
-	for (int i = 0; i < MAX_FIELD; i++) // for het cac truong de add vao hashtable
+	for (vector<int>::iterator it = list.begin(); it != list.end(); it++)
 	{
-		hashTable[i][temp->data[i]].push_back(countUser - 1); // moi truong se add vao hashtable tuong ung
+		if (*it > value) return;
+
+		if (*it == value)
+		{
+			list.erase(it);
+			return;
+		}
 	}
 }
 
-int Delete(FIELD field, char* str) // return so ban ghi cos truong field bang str
+void insertVector(vector<int> &list, int value)
+{
+	for (vector<int>::iterator it = list.begin(); it != list.end(); it++)
+	{
+		if (*it > value)
+		{
+			list.insert(it, value);
+			return;
+		}
+	}
+	// ko tim ra thi insert vao cuoi
+	list.push_back(value);
+}
+
+char tag[4];
+void addTag(int n, char string[])
+{
+	if (n < 3) return;
+
+	for (int i = 0; i <= n - 3; i++)  // i la vi tri dau tien cau tag 3 ki tu
+	{
+		int index = 0;
+		for (int j = i; j <= i + 2; j++)
+		{
+			tag[index] = origin_str[j];
+			index++;
+		}
+		tag[index] = '\0';
+
+		//---------- add tag------------//
+		insertVector(hashTable[tag], i); // insert vi tri dau tien cua tag vao hash table vector cos sap xep tu be toi lon
+	}
+}
+
+void init(int N, char init_string[])
+{
+	_N = N;
+	copyStr(init_string, origin_str);
+
+	// add tag
+	addTag(_N, origin_str);
+}
+
+
+
+// convert string A to string B
+// length cua A va B deu bang 3
+// return  so sub string da convert
+int change(char string_A[], char string_B[])
 {
 	int count = 0;
-	it = hashTable[field].find(str);
-	if (it->second.size() == 0) 
+	vector<int> list = hashTable[string_A];
+	if (list.size() == 0) 
 		return count;
 
-	vector<int> list = it->second; // list cac user can xoa => lay tung truong thong tin cua tung user de xoa id cua user do trong bang thong tin
-	count = list.size();
-
-
-	for (int i = 0; i < list.size(); i++)
+	int pre = 0;
+	for (vector<int>::iterator it = list.begin(); it != list.end(); it++) // for  het cac vi tri de thay string a thanh b
 	{
-		int id = list.at(i); // id cua user can xoa
-		User* temp = &poolUser[id];
+		int index = *it;
+		if (index < pre)
+			continue;
 
-		for (int k = 0; k < MAX_FIELD; k++) // for het 5 truong , moi truong se xoa id trong bang hashtable
+		// doi string a o vi tri index thanh string b
+		// xoa các hash tag cu
+		for (int i = index - 2; i <= index + 2; i++)
 		{
-			for (vector<int>::iterator pos = hashTable[k][temp->data[k]].begin();
-				pos != hashTable[k][temp->data[k]].end(); pos++) // for het vector cac id xem co id giong khong
-			{
-				if (*pos == id)
-				{
-					hashTable[k][temp->data[k]].erase(pos);
-					break; // moi lan chi can tim 1 so vi id la duy nhat
-				}
-			}
+			if (i < 0 || i > _N-3)
+				continue;
 
+			char tag[4];
+			tag[0] = origin_str[i];
+			tag[1] = origin_str[i+1];
+			tag[2] = origin_str[i+2];
+			tag[3] = '\0';
+
+			removeVector(hashTable[tag], i); // xoa tag
 		}
+
+
+		// thay string 
+		origin_str[index] = string_B[0];
+		origin_str[index+1] = string_B[1];
+		origin_str[index+2] = string_B[2];
+
+		// them cac hash tag moi
+		for (int i = index - 2; i <= index + 2; i++)
+		{
+			if (i < 0 || i > _N - 3)
+				continue;
+
+			char tag[4];
+			tag[0] = origin_str[i];
+			tag[1] = origin_str[i + 1];
+			tag[2] = origin_str[i + 2];
+			tag[3] = '\0';
+
+			insertVector(hashTable[tag], i); // them tag
+		}
+
+		// tang pre
+		pre = index + 3;
+
+		// dem so tag da bi thay the
+		count++;
 	}
 
 	return count;
 }
 
-int change(FIELD field, char* str, FIELD changefield, char* changestr) // return so ban ghi
+// return final string. only call 1 time  in the end of test case
+void result(char ret[])
 {
-	int count = 0;
-	it = hashTable[field].find(str);
-	if (it->second.size() == 0)
-		return count;
-
-	vector<int> list = it->second;
-	count = list.size();
-
-	for (int i = 0; i < list.size(); i++) // for het ca user id de thay doi truong changefiled
-	{
-		int id = list.at(i);
-		User* temp = &poolUser[id];
-
-		// for het vector<int> de tim id de xoa di
-		for (vector<int>::iterator pos = hashTable[changefield][temp->data[changefield]].begin();
-			pos != hashTable[changefield][temp->data[changefield]].end(); pos++)
-		{
-			if (*pos == id)
-			{
-				hashTable[changefield][temp->data[changefield]].erase(pos); // xoa id trong vector cac ids
-				break;
-			}
-		}
-
-		// thay du lieu moi
-		copystr(temp->data[changefield], changestr);
-
-		// them hash dua lieu moi
-		hashTable[changefield][temp->data[changefield]].push_back(id);
-	}
-	return count;
+	copyStr(origin_str, ret);
 }
 
 
-RESULT search(FIELD field, char* str, FIELD returnfield) // co 0 ban ghi hoac > 1 ban ghi thi ko quan tam returnfield
+int main()
 {
-	RESULT result;
-	result.count = 0;
+	char initstr[50] = "baaabbbbbb";
+	init(10, initstr);
+	int ressult = 0;
+	char temp1[20] = "baa";
+	char temp2[20] = "aba";
+	ressult = change(temp1, temp2);
 
-	it = hashTable[field].find(str);
-	if (it->second.size() == 0)
-		return result;
+	char temp3[20] = "aaa";
+	char temp4[20] = "bba";
+	ressult = change(temp3, temp4);
 
-	vector<int> list = it->second;
-	result.count = list.size();
+	char temp5[20] = "bbb";
+	char temp6[20] = "abb";
+	ressult = change(temp5, temp6);
 
-	if (list.size() == 1)
-	{
-		int id = list.at(0);
-		User* temp = &poolUser[id];
-		copystr(result.str, temp->data[returnfield]);
-	}
+	char ret[50007];
+	result(ret);
 
-	return result;
+	return 0;
 }
+
+
+
+/*
+	vector<int> list;
+	insertVector(list, 1);
+	insertVector(list, 6);
+	insertVector(list, 3);
+	insertVector(list, 8);
+	insertVector(list, 4);
+
+*/
