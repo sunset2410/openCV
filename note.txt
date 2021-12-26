@@ -1,14 +1,112 @@
-#include<unordered_map>
-#include<string>
+#define MAX_NODE 400007
+#define MAX_TABLE 50007
+#define NULL 0
 using namespace std;
 
-// N length cua init string
-// init_string[] origin string
+// begin linklist
+struct Node 
+{
+	int pos;
+	Node* next;
+	Node* pre;
+};
 
-char origin_str[500007];
+Node poolNode[MAX_NODE];
+int countNode;
+
+char origin_str[50007];
 int _N;
 
-unordered_map<string, vector<int>> hashTable;
+
+
+Node* newNode(int value  = -1)
+{
+	Node* temp = &poolNode[countNode];
+	temp->pos = value;
+	temp->next = temp->pre = NULL;
+	countNode++;
+	return temp;
+}
+
+void linkNode(Node* front, Node* back)
+{
+	front->next = back;
+	back->pre = front;
+}
+
+void insertNode(Node* front, Node* n, Node* back)
+{
+	linkNode(front, n);
+	linkNode(n, back);
+}
+
+void removeNode(Node* n)
+{
+	linkNode(n->pre, n->next);
+}
+
+
+bool recheck(int pos, char str[])
+{
+	if (origin_str[pos] != str[0]) return false;
+	if (origin_str[pos + 1] != str[1]) return false;
+	if (origin_str[pos + 2] != str[2]) return false;
+	return true;
+}
+
+struct List
+{
+public:
+	Node* head;
+	Node* tail;
+	void init()
+	{
+		head = newNode(-1);
+		tail = newNode(1000000);
+		linkNode(head, tail);
+	}
+
+	// insert vao theo thu tu tang dan
+	void insert(int value)  // insert theo thu tu tang dan
+	{
+		Node* n = newNode(value);
+		Node* temp = head;
+		while (temp != tail)
+		{
+			if (temp->pos > value)
+			{
+				// insert vao truoc temp
+				insertNode(temp->pre, n, temp);
+				return;
+			}
+			temp = temp->next;
+		}
+		// khong tim ra vi tri  co gia tri  > value => insert vao cuoi
+		insertNode(tail->pre, n, tail);
+	}
+
+
+	// remove gia tri
+	void remove(int value,char  tag[])
+	{
+		Node* temp = head->next;
+		while (temp != tail)
+		{
+			if (temp->pos == value && recheck(value,tag))
+			{
+				// remove temp
+				linkNode(temp->pre, temp->next);
+				return;
+			}
+			temp = temp->next;
+		}
+	}
+
+};
+
+// end linklist
+
+List hashTable[MAX_TABLE];
 
 void copyStr(char* s, char* d)
 {
@@ -36,32 +134,20 @@ bool compareStr(char* s1, char* s2)
 }
 
 
-void removeVector(vector<int> &list, int value)
-{
-	for (vector<int>::iterator it = list.begin(); it != list.end(); it++)
-	{
-		if (*it > value) return;
 
-		if (*it == value)
-		{
-			list.erase(it);
-			return;
-		}
-	}
-}
+typedef unsigned long ul;
 
-void insertVector(vector<int> &list, int value)
+unsigned long hashvalue(const char *str)
 {
-	for (vector<int>::iterator it = list.begin(); it != list.end(); it++)
+	unsigned long hash = 5381;
+	int c;
+
+	while (c = *str++)
 	{
-		if (*it > value)
-		{
-			list.insert(it, value);
-			return;
-		}
+		hash = (((hash << 5) + hash) + c) % MAX_TABLE;
 	}
-	// ko tim ra thi insert vao cuoi
-	list.push_back(value);
+
+	return hash % MAX_TABLE;
 }
 
 char tag[4];
@@ -69,7 +155,7 @@ void addTag(int n, char string[])
 {
 	if (n < 3) return;
 
-	for (int i = 0; i <= n - 3; i++)  // i la vi tri dau tien cau tag 3 ki tu
+	for (int i = 0; i <= n - 3; i++)  // i la vi tri dau tien cua tag 3 ki tu
 	{
 		int index = 0;
 		for (int j = i; j <= i + 2; j++)
@@ -80,14 +166,23 @@ void addTag(int n, char string[])
 		tag[index] = '\0';
 
 		//---------- add tag------------//
-		insertVector(hashTable[tag], i); // insert vi tri dau tien cua tag vao hash table vector cos sap xep tu be toi lon
+		// insert vi tri dau tien cua tag vao hash table vector cos sap xep tu be toi lon
+		ul hv = hashvalue(tag);
+		hashTable[hv].insert(i);
 	}
 }
+
 
 void init(int N, char init_string[])
 {
 	_N = N;
 	copyStr(init_string, origin_str);
+
+	for (int i = 0; i < MAX_TABLE; i++)
+	{
+		hashTable[i].init();
+	}
+
 
 	// add tag
 	addTag(_N, origin_str);
@@ -101,38 +196,53 @@ void init(int N, char init_string[])
 int change(char string_A[], char string_B[])
 {
 	int count = 0;
-	vector<int> list = hashTable[string_A];
-	if (list.size() == 0) 
-		return count;
+	
+	ul index = hashvalue(string_A);
+	List list = hashTable[index];
+
+	Node* temp = list.head->next;
 
 	int pre = 0;
-	for (vector<int>::iterator it = list.begin(); it != list.end(); it++) // for  het cac vi tri de thay string a thanh b
+	while(temp!= list.tail) // for  het cac vi tri de thay string a thanh b
 	{
-		int index = *it;
+		int index = temp->pos;
+		
 		if (index < pre)
+		{
+			temp = temp->next;
 			continue;
+		}
+			
+
+		if (recheck(index, string_A) == false) 
+		{
+			temp = temp->next;
+			continue;
+		}
 
 		// doi string a o vi tri index thanh string b
 		// xoa các hash tag cu
 		for (int i = index - 2; i <= index + 2; i++)
 		{
-			if (i < 0 || i > _N-3)
+			if (i < 0 || i > _N - 3)
 				continue;
 
 			char tag[4];
 			tag[0] = origin_str[i];
-			tag[1] = origin_str[i+1];
-			tag[2] = origin_str[i+2];
+			tag[1] = origin_str[i + 1];
+			tag[2] = origin_str[i + 2];
 			tag[3] = '\0';
 
-			removeVector(hashTable[tag], i); // xoa tag
+			 // xoa tag
+			ul pos = hashvalue(tag);
+			hashTable[pos].remove(i, tag);
 		}
 
 
 		// thay string 
 		origin_str[index] = string_B[0];
-		origin_str[index+1] = string_B[1];
-		origin_str[index+2] = string_B[2];
+		origin_str[index + 1] = string_B[1];
+		origin_str[index + 2] = string_B[2];
 
 		// them cac hash tag moi
 		for (int i = index - 2; i <= index + 2; i++)
@@ -146,7 +256,9 @@ int change(char string_A[], char string_B[])
 			tag[2] = origin_str[i + 2];
 			tag[3] = '\0';
 
-			insertVector(hashTable[tag], i); // them tag
+			// them tag
+			ul pos = hashvalue(tag);
+			hashTable[pos].insert(i);
 		}
 
 		// tang pre
@@ -154,6 +266,8 @@ int change(char string_A[], char string_B[])
 
 		// dem so tag da bi thay the
 		count++;
+
+		temp = temp->next;
 	}
 
 	return count;
@@ -164,39 +278,3 @@ void result(char ret[])
 {
 	copyStr(origin_str, ret);
 }
-
-
-int main()
-{
-	char initstr[50] = "baaabbbbbb";
-	init(10, initstr);
-	int ressult = 0;
-	char temp1[20] = "baa";
-	char temp2[20] = "aba";
-	ressult = change(temp1, temp2);
-
-	char temp3[20] = "aaa";
-	char temp4[20] = "bba";
-	ressult = change(temp3, temp4);
-
-	char temp5[20] = "bbb";
-	char temp6[20] = "abb";
-	ressult = change(temp5, temp6);
-
-	char ret[50007];
-	result(ret);
-
-	return 0;
-}
-
-
-
-/*
-	vector<int> list;
-	insertVector(list, 1);
-	insertVector(list, 6);
-	insertVector(list, 3);
-	insertVector(list, 8);
-	insertVector(list, 4);
-
-*/
