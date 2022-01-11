@@ -155,6 +155,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="histogram.cpp" />
+    <ClCompile Include="sobel.cpp" />
     <ClCompile Include="Stitcher_images.cpp" />
     <ClCompile Include="Test.cpp" />
     <ClCompile Include="video.cpp" />
